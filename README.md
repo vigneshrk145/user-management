@@ -206,4 +206,39 @@ The app expects the following JSON Server endpoints:
 - Safari (latest)
 - Edge (latest)
 
+---
+
+## Deployment to Vercel
+
+### Important: Configure Backend API
+
+
+1. **Create a `.env.production` file:**
+   ```
+   VITE_API_URL=https://user-management-lyart-seven.vercel.app/users
+   ```
+
+2. **Or set Environment Variable in Vercel:**
+   - Go to Vercel Dashboard → Settings → Environment Variables
+   - Add: `VITE_API_URL` = `https://user-management-lyart-seven.vercel.app/users`
+
+3. **Options for Backend:**
+   - Use a real backend API (Node.js, Python, etc.)
+   - Use Vercel Serverless Functions
+   - Use Firebase Realtime Database
+   - Use MongoDB Atlas with a backend
+
+### Quick Deployment Steps
+
+1. Push code to GitHub
+2. Go to https://vercel.com/new and import repository
+3. Add environment variable `VITE_API_URL`
+4. Deploy and test on mobile
+
+---
+
+## License
+
+MIT License - Feel free to use this project for learning and development.
+
 

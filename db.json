@@ -1,46 +1,18 @@
 {
   "users": [
     {
-      "id": 2,
-      "firstName": "Jane",
-      "lastName": "Smith",
-      "email": "jane.smith@example.com",
-      "phoneNumber": "+1 (555) 234-5678"
-    },
-    {
-      "id": 4,
-      "firstName": "Emily",
-      "lastName": "Williams",
-      "email": "emily.williams@example.com",
-      "phoneNumber": "+1 (555) 456-7890"
-    },
-    {
-      "firstName": "Vignesh",
-      "lastName": "dsdsds",
-      "email": "travis.scott@example.com",
-      "phoneNumber": "9345771777",
-      "id": 5
-    },
-    {
-      "firstName": "Vignesh",
-      "lastName": "dsdsds",
-      "email": "karti@gmail.com",
-      "phoneNumber": "7874592569",
-      "id": 6
-    },
-    {
       "firstName": "VIGNESH",
       "lastName": "dsdsds",
-      "email": "karti@gmail.com",
-      "phoneNumber": "9345771779",
-      "id": 7
+      "email": "travis.scott@example.com",
+      "phoneNumber": "7874592569",
+      "id": 1
     },
     {
       "firstName": "sddsds",
       "lastName": "dsdsds",
-      "email": "foodie@gmail.com",
+      "email": "karti@gmail.com",
       "phoneNumber": "7874592569",
-      "id": 8
+      "id": 2
     }
   ]
 }

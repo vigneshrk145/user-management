@@ -4,9 +4,20 @@ import type { User } from '../types';
 
 class UserService {
   private api: AxiosInstance;
-  private baseURL = 'http://localhost:3001/users';
+  private baseURL: string;
 
   constructor() {
+    // Determine API URL based on environment
+    const isDevelopment = import.meta.env.DEV;
+    
+    if (isDevelopment) {
+      // Local development with JSON Server
+      this.baseURL = 'http://localhost:3001/users';
+    } else {
+      // Production - use environment variable or default to current origin
+      this.baseURL = import.meta.env.VITE_API_URL || `${window.location.origin}/api/users`;
+    }
+
     this.api = axios.create({
       baseURL: this.baseURL,
       timeout: 10000,
