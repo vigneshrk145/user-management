@@ -9,14 +9,20 @@ class UserService {
   constructor() {
     // Determine API URL based on environment
     const isDevelopment = import.meta.env.DEV;
-    
+
     if (isDevelopment) {
       // Local development with JSON Server
       this.baseURL = 'http://localhost:3001/users';
     } else {
-      // Production - use environment variable or default to current origin
-      this.baseURL = import.meta.env.VITE_API_URL || `${window.location.origin}/api/users`;
+      // Production - prefer environment variable. If not set, use a relative
+      // `/api/users` path so requests go to the same origin (avoids 404 /users).
+      // Example Vercel serverless function lives at /api/users
+      this.baseURL = import.meta.env.VITE_API_URL ?? '/api/users';
     }
+
+    // Helpful debug log (removed in final production if desired)
+    // eslint-disable-next-line no-console
+    console.info('[UserService] API baseURL ->', this.baseURL);
 
     this.api = axios.create({
       baseURL: this.baseURL,
