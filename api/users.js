@@ -6,9 +6,26 @@ module.exports = async (req, res) => {
   const dbPath = path.join(__dirname, '..', 'db.json');
 
   try {
+    if (!fs.existsSync(dbPath)) {
+      // If db.json is not present in the deployment, return an empty list
+      // instead of throwing a 500. This avoids failures when read-only
+      // environments don't include the file.
+      if (method === 'GET') return res.status(200).json([]);
+      return res.status(501).json({ message: 'Write operations are not supported in this demo function.' });
+    }
+
     const raw = fs.readFileSync(dbPath, 'utf-8');
-    const db = JSON.parse(raw);
-    const users = db.users || [];
+    let db;
+    try {
+      db = JSON.parse(raw);
+    } catch (parseErr) {
+      console.error('Failed to parse db.json:', parseErr);
+      // Return empty users rather than failing completely
+      if (method === 'GET') return res.status(200).json([]);
+      return res.status(500).json({ message: 'Invalid db.json format' });
+    }
+
+    const users = Array.isArray(db.users) ? db.users : [];
 
     if (method === 'GET') {
       return res.status(200).json(users);
