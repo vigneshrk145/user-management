@@ -17,7 +17,7 @@ class UserService {
       // Production - prefer environment variable. If not set, use a relative
       // `/api/users` path so requests go to the same origin (avoids 404 /users).
       // Example Vercel serverless function lives at /api/users
-      this.baseURL = import.meta.env.VITE_API_URL ?? '/api/users';
+      this.baseURL = import.meta.env.VITE_API_URL ?? '/users';
     }
 
     // Helpful debug log (removed in final production if desired)
