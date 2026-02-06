@@ -1,17 +1,34 @@
 const fs = require('fs');
 const path = require('path');
 
+const setCors = (res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+};
+
+const parseRequest = (req) => {
+  const fullUrl = req.url || '/';
+  try {
+    const u = new URL(fullUrl, 'http://localhost');
+    return u;
+  } catch (e) {
+    return { pathname: fullUrl, searchParams: new URLSearchParams() };
+  }
+};
+
 module.exports = async (req, res) => {
+  setCors(res);
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
   const method = req.method;
   const dbPath = path.join(__dirname, '..', 'db.json');
 
   try {
+    // Ensure db.json exists and is valid JSON
     if (!fs.existsSync(dbPath)) {
-      // If db.json is not present in the deployment, return an empty list
-      // instead of throwing a 500. This avoids failures when read-only
-      // environments don't include the file.
       if (method === 'GET') return res.status(200).json([]);
-      return res.status(501).json({ message: 'Write operations are not supported in this demo function.' });
+      return res.status(501).json({ message: 'db.json not found in deployment; write operations are not supported.' });
     }
 
     const raw = fs.readFileSync(dbPath, 'utf-8');
@@ -20,21 +37,80 @@ module.exports = async (req, res) => {
       db = JSON.parse(raw);
     } catch (parseErr) {
       console.error('Failed to parse db.json:', parseErr);
-      // Return empty users rather than failing completely
       if (method === 'GET') return res.status(200).json([]);
       return res.status(500).json({ message: 'Invalid db.json format' });
     }
 
-    const users = Array.isArray(db.users) ? db.users : [];
+    if (!Array.isArray(db.users)) db.users = [];
+
+    const url = parseRequest(req);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    // If path contains an id like /api/users/1
+    let idFromPath = null;
+    if (pathParts.length > 1) {
+      const last = pathParts[pathParts.length - 1];
+      const n = Number(last);
+      if (!Number.isNaN(n)) idFromPath = n;
+    }
+    const qid = url.searchParams.get('id');
+    const id = idFromPath || (qid ? Number(qid) : null);
 
     if (method === 'GET') {
-      return res.status(200).json(users);
+      if (id !== null) {
+        const found = db.users.find((u) => Number(u.id) === Number(id));
+        return res.status(200).json(found || null);
+      }
+      return res.status(200).json(db.users);
     }
 
-    // For write operations (POST/PUT/DELETE) we return 501 Not Implemented
-    // because serverless filesystem is ephemeral and writes won't persist.
-    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
-      return res.status(501).json({ message: 'Write operations are not supported in this demo function. Use a real backend for persistence.' });
+    // For write operations, attempt to update db.json. On many serverless
+    // platforms the filesystem is read-only or ephemeral; if writing fails
+    // we return 501 with an explanation so the frontend knows writes won't persist.
+    if (method === 'POST') {
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      const payload = body ? JSON.parse(body) : {};
+      const maxId = db.users.reduce((m, u) => Math.max(m, Number(u.id) || 0), 0);
+      const newUser = { ...payload, id: (maxId || 0) + 1 };
+      db.users.push(newUser);
+      try {
+        fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8');
+        return res.status(201).json(newUser);
+      } catch (err) {
+        console.error('Write failed:', err);
+        return res.status(501).json({ message: 'Write operations are not supported on this deployment (filesystem read-only). Use an external backend for persistence.' });
+      }
+    }
+
+    if (method === 'PUT') {
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      const payload = body ? JSON.parse(body) : {};
+      if (id === null) return res.status(400).json({ message: 'Missing id for update' });
+      const idx = db.users.findIndex((u) => Number(u.id) === Number(id));
+      if (idx === -1) return res.status(404).json({ message: 'User not found' });
+      db.users[idx] = { ...db.users[idx], ...payload, id: db.users[idx].id };
+      try {
+        fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8');
+        return res.status(200).json(db.users[idx]);
+      } catch (err) {
+        console.error('Write failed:', err);
+        return res.status(501).json({ message: 'Write operations are not supported on this deployment (filesystem read-only).' });
+      }
+    }
+
+    if (method === 'DELETE') {
+      if (id === null) return res.status(400).json({ message: 'Missing id for delete' });
+      const idx = db.users.findIndex((u) => Number(u.id) === Number(id));
+      if (idx === -1) return res.status(404).json({ message: 'User not found' });
+      const removed = db.users.splice(idx, 1)[0];
+      try {
+        fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8');
+        return res.status(200).json(removed);
+      } catch (err) {
+        console.error('Write failed:', err);
+        return res.status(501).json({ message: 'Delete not supported on this deployment (filesystem read-only).' });
+      }
     }
 
     return res.status(405).json({ message: 'Method Not Allowed' });
